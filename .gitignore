@@ -1,0 +1,32 @@
+node_modules/
+.env
+.env.local
+.env.*.local
+*.local
+
+# build / runtime
+dist/
+build/
+.next/
+.turbo/
+*.tsbuildinfo
+
+# data / db
+data/*.sqlite
+data/*.sqlite-journal
+data/*.db
+data/snapshots/
+
+# logs
+*.log
+logs/
+
+# editor / OS
+.DS_Store
+.vscode/
+.idea/
+
+# never commit RPC tokens or private keys
+*swrm_*
+*.key
+*.pem

@@ -1,0 +1,29 @@
+{
+  "name": "rfb2-agent",
+  "version": "0.0.1",
+  "private": true,
+  "description": "Prediction-market mispricing agent for Agora Agents Hackathon RFB 2",
+  "workspaces": [
+    "packages/*",
+    "apps/*"
+  ],
+  "scripts": {
+    "ingest": "bun run packages/ingester/src/index.ts",
+    "edge": "bun run packages/edge/src/index.ts",
+    "agent": "bun run packages/agent/src/index.ts",
+    "rpc:ping": "bun run scripts/rpc-ping.ts",
+    "typecheck": "tsc -b --noEmit"
+  },
+  "devDependencies": {
+    "@types/bun": "latest",
+    "typescript": "^5.6.0"
+  },
+  "dependencies": {
+    "viem": "^2.21.0",
+    "@rfb2/shared": "workspace:*",
+    "@rfb2/ingester": "workspace:*",
+    "@rfb2/edge": "workspace:*",
+    "@rfb2/agent": "workspace:*",
+    "@rfb2/onchain": "workspace:*"
+  }
+}

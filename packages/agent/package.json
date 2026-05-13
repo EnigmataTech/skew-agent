@@ -1,0 +1,12 @@
+{
+  "name": "@rfb2/agent",
+  "version": "0.0.1",
+  "private": true,
+  "type": "module",
+  "main": "src/index.ts",
+  "dependencies": {
+    "@rfb2/shared": "workspace:*",
+    "@rfb2/edge": "workspace:*",
+    "@rfb2/onchain": "workspace:*"
+  }
+}

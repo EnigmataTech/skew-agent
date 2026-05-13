@@ -1,0 +1,11 @@
+{
+  "name": "@rfb2/onchain",
+  "version": "0.0.1",
+  "private": true,
+  "type": "module",
+  "main": "src/index.ts",
+  "dependencies": {
+    "@rfb2/shared": "workspace:*",
+    "viem": "^2.21.0"
+  }
+}

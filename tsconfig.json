@@ -1,0 +1,24 @@
+{
+  "compilerOptions": {
+    "target": "ESNext",
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "lib": ["ESNext"],
+    "types": ["bun"],
+    "strict": true,
+    "noUncheckedIndexedAccess": true,
+    "skipLibCheck": true,
+    "esModuleInterop": true,
+    "resolveJsonModule": true,
+    "isolatedModules": true,
+    "verbatimModuleSyntax": false,
+    "allowSyntheticDefaultImports": true,
+    "baseUrl": ".",
+    "paths": {
+      "@rfb2/shared": ["packages/shared/src/index.ts"],
+      "@rfb2/shared/*": ["packages/shared/src/*"]
+    }
+  },
+  "include": ["packages/*/src/**/*", "scripts/**/*"],
+  "exclude": ["node_modules", "dist", "apps/dashboard"]
+}
