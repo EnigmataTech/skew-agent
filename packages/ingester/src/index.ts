@@ -1,11 +1,13 @@
 import { snapshotPolymarket } from "./polymarket";
+import { snapshotKalshi } from "./kalshi";
 
 const INTERVAL_MS = 5 * 60 * 1000;
 
 async function tick() {
-  try { await snapshotPolymarket(); }
-  catch (e) { console.error("[polymarket] error:", e); }
-  // Kalshi added next turn.
+  await Promise.allSettled([
+    snapshotPolymarket().catch(e => console.error("[polymarket] error:", e)),
+    snapshotKalshi().catch(e => console.error("[kalshi] error:", e)),
+  ]);
 }
 
 if (import.meta.main) {
