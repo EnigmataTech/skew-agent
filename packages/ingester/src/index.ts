@@ -1,11 +1,20 @@
-// Snapshotters for Polymarket + Kalshi.
-// Filled in on D2. Skeleton only.
-import { env } from "@rfb2/shared";
+import { snapshotPolymarket } from "./polymarket";
 
-export async function main() {
-  console.log("[ingester] polymarket base:", env.polymarket());
-  console.log("[ingester] kalshi base:    ", env.kalshi());
-  console.log("[ingester] TODO: implement snapshot loop (D2)");
+const INTERVAL_MS = 5 * 60 * 1000;
+
+async function tick() {
+  try { await snapshotPolymarket(); }
+  catch (e) { console.error("[polymarket] error:", e); }
+  // Kalshi added next turn.
 }
 
-if (import.meta.main) await main();
+if (import.meta.main) {
+  const loop = process.argv.includes("--loop");
+  await tick();
+  if (loop) {
+    setInterval(tick, INTERVAL_MS);
+    console.log(`[ingester] looping every ${INTERVAL_MS / 1000}s — Ctrl-C to stop`);
+  }
+}
+
+export { snapshotPolymarket };

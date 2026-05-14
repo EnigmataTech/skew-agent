@@ -1,4 +1,5 @@
 export { env } from "./env";
+export { db, now } from "./db";
 
 export type Venue = "polymarket" | "kalshi";
 
