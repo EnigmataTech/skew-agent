@@ -7,4 +7,6 @@ export { rebuildMispricings } from "./mispricing";
 export { kalshiSettlement, kalshiSeries, POLYMARKET_SETTLEMENT } from "./settlement";
 export type { SettlementType } from "./settlement";
 export { runCalibration } from "./backtest";
+export { persistCalibration, correctedProb, calibKindFor, clearCalibCache } from "./calibration";
+export type { CalibKind } from "./calibration";
 

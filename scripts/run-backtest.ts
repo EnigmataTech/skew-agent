@@ -1,5 +1,6 @@
 // Pull 365d of BTC + ETH history then run the walk-forward calibration.
 import { fetchDailyCloses, runCalibration } from "../packages/edge/src/index";
+import { persistCalibration } from "../packages/edge/src/calibration";
 import { db } from "@rfb2/shared";
 
 console.log("[backtest] fetching 365d daily closes…");
@@ -14,6 +15,8 @@ for (const asset of ["BTC", "ETH"] as const) {
   console.log(`\n=== ${asset} calibration ===`);
   const r = runCalibration(asset);
   console.log(`  history=${r.historyDays}d`);
+  persistCalibration(asset, r.perKind as any);
+  console.log(`  → reliability stored in 'calibration' table`);
   for (const [kind, stats] of Object.entries(r.perKind)) {
     const s = stats as { n: number; brier: number; buckets: { lo: number; hi: number; n: number; yes: number; rate: number; avgPred: number }[] };
     console.log(`\n  --- ${kind}  (n=${s.n}, brier=${s.brier.toFixed(4)}) ---`);

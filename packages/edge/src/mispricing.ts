@@ -3,6 +3,7 @@ import { parsePolymarket, parseKalshi, type CanonicalStrike } from "./parse";
 import { latestSpot, realizedVol } from "./spot";
 import { modelProb } from "./model";
 import type { SettlementType } from "./settlement";
+import { correctedProb, calibKindFor } from "./calibration";
 
 // Settlement types we can price right now.
 const PRICEABLE: ReadonlySet<SettlementType> = new Set(["eod-digital", "barrier-max", "barrier-min"]);
@@ -32,6 +33,9 @@ function ensureTable() {
   const cols = conn.query<{ name: string }, []>("PRAGMA table_info(mispricings)").all().map(r => r.name);
   if (!cols.includes("settlement")) {
     conn.exec("ALTER TABLE mispricings ADD COLUMN settlement TEXT");
+  }
+  if (!cols.includes("raw_model_p")) {
+    conn.exec("ALTER TABLE mispricings ADD COLUMN raw_model_p REAL");
   }
 }
 
@@ -72,8 +76,8 @@ export function rebuildMispricings(): { evaluated: number; written: number; spot
   const insert = conn.prepare(`
     INSERT OR REPLACE INTO mispricings
       (market_id, captured_at, asset, op, strike, strike_upper, expiry_unix,
-       spot, sigma, model_p, market_p, edge, liquidity, volume_24h, settlement)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+       spot, sigma, model_p, raw_model_p, market_p, edge, liquidity, volume_24h, settlement)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
   `);
 
   let evaluated = 0, written = 0, skippedSettlement = 0;
@@ -90,11 +94,13 @@ export function rebuildMispricings(): { evaluated: number; written: number; spot
       if (c.expiryUnix <= ts) continue;
       const spot = spots[c.asset]!;
       const sigma = sigmas[c.asset]!;
-      const modelP = modelProb(c, { spot, sigmaAnnual: sigma, nowUnix: ts }, settlement);
+      const rawModelP = modelProb(c, { spot, sigmaAnnual: sigma, nowUnix: ts }, settlement);
+      const kind = calibKindFor(c.op, settlement);
+      const modelP = kind ? correctedProb(rawModelP, c.asset, kind) : rawModelP;
       const edge = modelP - r.market_p;
       insert.run(
         r.id, ts, c.asset, c.op, c.strike, c.strikeUpper ?? null, c.expiryUnix,
-        spot, sigma, modelP, r.market_p, edge,
+        spot, sigma, modelP, rawModelP, r.market_p, edge,
         r.liquidity, r.volume_24h, settlement,
       );
       written++;
