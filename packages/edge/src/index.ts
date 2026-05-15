@@ -6,4 +6,5 @@ export { modelProb, probGte, probLte, probRange, probMaxGte, probMinLte } from "
 export { rebuildMispricings } from "./mispricing";
 export { kalshiSettlement, kalshiSeries, POLYMARKET_SETTLEMENT } from "./settlement";
 export type { SettlementType } from "./settlement";
+export { runCalibration } from "./backtest";
 
