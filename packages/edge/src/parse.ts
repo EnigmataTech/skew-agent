@@ -109,10 +109,14 @@ export function parseKalshi(raw: {
   strike_type?: string;
   expiration_time?: string;
   close_time?: string;
+  expected_expiration_time?: string;
 }): CanonicalStrike | null {
   const asset = raw.title ? findAsset(raw.title) : null;
   if (!asset) return null;
-  const expIso = raw.expiration_time ?? raw.close_time;
+  // close_time is the underlying-event resolution moment. expiration_time
+  // is Kalshi's formal dispute-window end (often days later). For pricing
+  // we want the moment when the underlying observation happens.
+  const expIso = raw.close_time ?? raw.expiration_time;
   if (!expIso) return null;
   const expiryUnix = Math.floor(new Date(expIso).getTime() / 1000);
   if (!Number.isFinite(expiryUnix)) return null;

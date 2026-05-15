@@ -37,6 +37,7 @@
       "name": "@rfb2/ingester",
       "version": "0.0.1",
       "dependencies": {
+        "@rfb2/edge": "workspace:*",
         "@rfb2/shared": "workspace:*",
       },
     },

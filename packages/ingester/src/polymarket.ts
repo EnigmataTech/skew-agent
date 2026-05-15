@@ -62,11 +62,12 @@ export async function snapshotPolymarket() {
   const conn = db();
 
   const upsertMarket = conn.prepare(`
-    INSERT INTO markets (id, venue, venue_id, question, category, closes_at, first_seen, last_seen, raw_json)
-    VALUES (?, 'polymarket', ?, ?, ?, ?, ?, ?, ?)
+    INSERT INTO markets (id, venue, venue_id, question, category, settlement, closes_at, first_seen, last_seen, raw_json)
+    VALUES (?, 'polymarket', ?, ?, ?, 'eod-digital', ?, ?, ?, ?)
     ON CONFLICT(id) DO UPDATE SET
       question = excluded.question,
       category = excluded.category,
+      settlement = excluded.settlement,
       closes_at = excluded.closes_at,
       last_seen = excluded.last_seen,
       raw_json = excluded.raw_json

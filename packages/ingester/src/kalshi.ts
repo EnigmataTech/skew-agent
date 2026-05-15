@@ -1,4 +1,5 @@
 import { db, now, env } from "@rfb2/shared";
+import { kalshiSettlement } from "@rfb2/edge";
 
 const PAGE = 200;
 
@@ -108,11 +109,12 @@ export async function snapshotKalshi() {
   const conn = db();
 
   const upsertMarket = conn.prepare(`
-    INSERT INTO markets (id, venue, venue_id, question, category, closes_at, first_seen, last_seen, raw_json)
-    VALUES (?, 'kalshi', ?, ?, ?, ?, ?, ?, ?)
+    INSERT INTO markets (id, venue, venue_id, question, category, settlement, closes_at, first_seen, last_seen, raw_json)
+    VALUES (?, 'kalshi', ?, ?, ?, ?, ?, ?, ?, ?)
     ON CONFLICT(id) DO UPDATE SET
       question = excluded.question,
       category = excluded.category,
+      settlement = excluded.settlement,
       closes_at = excluded.closes_at,
       last_seen = excluded.last_seen,
       raw_json = excluded.raw_json
@@ -150,7 +152,8 @@ export async function snapshotKalshi() {
           const id = `kalshi:${mk.ticker}`;
           const closesAt = mk.close_time ? Math.floor(new Date(mk.close_time).getTime() / 1000) : null;
           const question = composeQuestion(mk);
-          upsertMarket.run(id, mk.ticker, question, category, closesAt, ts, ts, JSON.stringify(mk));
+          const settlement = kalshiSettlement(mk.ticker);
+          upsertMarket.run(id, mk.ticker, question, category, settlement, closesAt, ts, ts, JSON.stringify(mk));
 
           const yesBid = numOrNull(mk.yes_bid_dollars);
           const yesAsk = numOrNull(mk.yes_ask_dollars);

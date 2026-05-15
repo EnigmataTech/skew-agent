@@ -2,9 +2,14 @@ import { db, now } from "@rfb2/shared";
 import { parsePolymarket, parseKalshi, type CanonicalStrike } from "./parse";
 import { latestSpot, realizedVol } from "./spot";
 import { modelProb } from "./model";
+import type { SettlementType } from "./settlement";
+
+// Settlement types we can price right now.
+const PRICEABLE: ReadonlySet<SettlementType> = new Set(["eod-digital", "barrier-max", "barrier-min"]);
 
 function ensureTable() {
-  db().exec(`
+  const conn = db();
+  conn.exec(`
     CREATE TABLE IF NOT EXISTS mispricings (
       market_id     TEXT NOT NULL,
       captured_at   INTEGER NOT NULL,
@@ -17,13 +22,17 @@ function ensureTable() {
       sigma         REAL NOT NULL,
       model_p       REAL NOT NULL,
       market_p      REAL NOT NULL,
-      edge          REAL NOT NULL,         -- model_p - market_p
+      edge          REAL NOT NULL,
       liquidity     REAL,
       volume_24h    REAL,
       PRIMARY KEY (market_id, captured_at)
     );
     CREATE INDEX IF NOT EXISTS idx_mispricings_edge ON mispricings(captured_at DESC, edge);
   `);
+  const cols = conn.query<{ name: string }, []>("PRAGMA table_info(mispricings)").all().map(r => r.name);
+  if (!cols.includes("settlement")) {
+    conn.exec("ALTER TABLE mispricings ADD COLUMN settlement TEXT");
+  }
 }
 
 export interface ScoredMispricing {
@@ -49,9 +58,9 @@ export function rebuildMispricings(): { evaluated: number; written: number; spot
   }
 
   // Pull latest snapshot per market for tracked categories.
-  type Row = { id: string; venue: string; question: string; closes_at: number | null; raw_json: string; market_p: number; volume_24h: number | null; liquidity: number | null };
+  type Row = { id: string; venue: string; question: string; closes_at: number | null; raw_json: string; settlement: SettlementType | null; market_p: number; volume_24h: number | null; liquidity: number | null };
   const rows = conn.query<Row, []>(`
-    SELECT m.id, m.venue, m.question, m.closes_at, m.raw_json,
+    SELECT m.id, m.venue, m.question, m.closes_at, m.raw_json, m.settlement,
            s.implied_prob AS market_p, s.volume_24h, s.liquidity
     FROM markets m
     JOIN snapshots s ON s.market_id = m.id AND s.outcome = 'yes'
@@ -63,13 +72,16 @@ export function rebuildMispricings(): { evaluated: number; written: number; spot
   const insert = conn.prepare(`
     INSERT OR REPLACE INTO mispricings
       (market_id, captured_at, asset, op, strike, strike_upper, expiry_unix,
-       spot, sigma, model_p, market_p, edge, liquidity, volume_24h)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+       spot, sigma, model_p, market_p, edge, liquidity, volume_24h, settlement)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
   `);
 
-  let evaluated = 0, written = 0;
+  let evaluated = 0, written = 0, skippedSettlement = 0;
   const tx = conn.transaction(() => {
     for (const r of rows) {
+      const settlement = (r.settlement ?? "unknown") as SettlementType;
+      if (!PRICEABLE.has(settlement)) { skippedSettlement++; continue; }
+
       const c = r.venue === "polymarket"
         ? parsePolymarket(r.question, r.closes_at)
         : parseKalshi(JSON.parse(r.raw_json));
@@ -78,16 +90,16 @@ export function rebuildMispricings(): { evaluated: number; written: number; spot
       if (c.expiryUnix <= ts) continue;
       const spot = spots[c.asset]!;
       const sigma = sigmas[c.asset]!;
-      const modelP = modelProb(c, { spot, sigmaAnnual: sigma, nowUnix: ts });
+      const modelP = modelProb(c, { spot, sigmaAnnual: sigma, nowUnix: ts }, settlement);
       const edge = modelP - r.market_p;
       insert.run(
         r.id, ts, c.asset, c.op, c.strike, c.strikeUpper ?? null, c.expiryUnix,
         spot, sigma, modelP, r.market_p, edge,
-        r.liquidity, r.volume_24h,
+        r.liquidity, r.volume_24h, settlement,
       );
       written++;
     }
   });
   tx();
-  return { evaluated, written, spots: spots as any, sigmas: sigmas as any };
+  return { evaluated, written, skippedSettlement, spots: spots as any, sigmas: sigmas as any };
 }

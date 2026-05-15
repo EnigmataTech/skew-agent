@@ -10,6 +10,7 @@ CREATE TABLE IF NOT EXISTS markets (
   venue_id     TEXT NOT NULL,
   question     TEXT NOT NULL,
   category     TEXT,                       -- our normalized tag, e.g. 'btc-price'
+  settlement   TEXT,                       -- see SettlementType (eod-digital/barrier-max/...)
   closes_at    INTEGER,                    -- unix seconds
   first_seen   INTEGER NOT NULL,
   last_seen    INTEGER NOT NULL,
@@ -74,6 +75,11 @@ export function db(): Database {
   _db.exec("PRAGMA journal_mode = WAL");
   _db.exec("PRAGMA foreign_keys = ON");
   _db.exec(SCHEMA);
+  // Lightweight migration: add settlement column to existing DBs.
+  const cols = _db.query<{ name: string }, []>("PRAGMA table_info(markets)").all().map(r => r.name);
+  if (!cols.includes("settlement")) {
+    _db.exec("ALTER TABLE markets ADD COLUMN settlement TEXT");
+  }
   return _db;
 }
 
