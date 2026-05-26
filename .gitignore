@@ -14,12 +14,20 @@ build/
 # data / db
 data/*.sqlite
 data/*.sqlite-journal
+data/*.sqlite-shm
+data/*.sqlite-wal
 data/*.db
 data/snapshots/
+data/agent-state.json
 
 # logs
 *.log
 logs/
+
+# Python
+.venv/
+__pycache__/
+*.pyc
 
 # editor / OS
 .DS_Store

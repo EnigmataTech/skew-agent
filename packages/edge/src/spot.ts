@@ -23,8 +23,18 @@ function ensureTable() {
 
 const COINS = { BTC: "bitcoin", ETH: "ethereum" } as const;
 
+const SPOT_TTL_SECS = 5 * 60; // re-fetch at most once per 5 min
+
 export async function fetchSpot(): Promise<Record<"BTC" | "ETH", number>> {
   ensureTable();
+  // Return cached value if it's fresh enough.
+  const age = db().query<{ age: number }, []>(
+    `SELECT ? - MAX(captured_at) AS age FROM prices WHERE asset='BTC'`
+  ).get()?.age ?? Infinity;
+  if (age < SPOT_TTL_SECS) {
+    return { BTC: latestSpot("BTC")!, ETH: latestSpot("ETH")! };
+  }
+
   const ids = Object.values(COINS).join(",");
   const url = `https://api.coingecko.com/api/v3/simple/price?ids=${ids}&vs_currencies=usd`;
   const res = await fetch(url, { headers: { accept: "application/json" } });
@@ -44,8 +54,24 @@ export async function fetchSpot(): Promise<Record<"BTC" | "ETH", number>> {
   return out as Record<"BTC" | "ETH", number>;
 }
 
+const CLOSES_TTL_SECS = 60 * 60; // re-fetch at most once per hour
+
 export async function fetchDailyCloses(asset: "BTC" | "ETH", days = 60): Promise<{ day: string; close: number }[]> {
   ensureTable();
+  // Skip fetch if we already have enough recent rows.
+  const count = db().query<{ n: number }, [string]>(
+    `SELECT COUNT(*) n FROM daily_closes WHERE asset=?`
+  ).get(asset)?.n ?? 0;
+  const latestDay = db().query<{ day: string }, [string]>(
+    `SELECT MAX(day) day FROM daily_closes WHERE asset=?`
+  ).get(asset)?.day ?? "";
+  const today = new Date().toISOString().slice(0, 10);
+  if (count >= days && latestDay >= today) {
+    return db().query<{ day: string; close_usd: number }, [string, number]>(
+      `SELECT day, close_usd FROM daily_closes WHERE asset=? ORDER BY day DESC LIMIT ?`
+    ).all(asset, days).map(r => ({ day: r.day, close: r.close_usd }));
+  }
+
   const url = `https://api.coingecko.com/api/v3/coins/${COINS[asset]}/market_chart?vs_currency=usd&days=${days}&interval=daily`;
   const res = await fetch(url, { headers: { accept: "application/json" } });
   if (!res.ok) throw new Error(`coingecko market_chart ${res.status}: ${await res.text()}`);

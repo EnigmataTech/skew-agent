@@ -1,8 +1,8 @@
 {
-  "name": "rfb2-agent",
+  "name": "skew",
   "version": "0.0.1",
   "private": true,
-  "description": "Prediction-market mispricing agent for Agora Agents Hackathon RFB 2",
+  "description": "Skew — autonomous prediction-market mispricing agent (Agora Agents Hackathon RFB 2)",
   "workspaces": [
     "packages/*",
     "apps/*"
@@ -11,6 +11,8 @@
     "ingest": "bun run packages/ingester/src/index.ts",
     "edge": "bun run packages/edge/src/index.ts",
     "agent": "bun run packages/agent/src/index.ts",
+    "api": "bun run packages/api/src/index.ts",
+    "tui": "cd packages/tui && ../../packages/tui/.venv/bin/python app.py",
     "rpc:ping": "bun run scripts/rpc-ping.ts",
     "typecheck": "tsc -b --noEmit"
   },

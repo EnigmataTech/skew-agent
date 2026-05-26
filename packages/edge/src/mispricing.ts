@@ -50,7 +50,7 @@ export interface ScoredMispricing {
   c: CanonicalStrike;
 }
 
-export function rebuildMispricings(): { evaluated: number; written: number; spots: Record<string, number>; sigmas: Record<string, number> } {
+export function rebuildMispricings(): { evaluated: number; written: number; skippedSettlement: number; spots: Record<string, number>; sigmas: Record<string, number> } {
   ensureTable();
   const conn = db();
   const ts = now();

@@ -1,2 +1,3 @@
-export { publicClient } from "./client";
-// ERC-8004 identity registration + ERC-8183 job contracts go here (D9-D10).
+export { publicClient, walletClient, agentAccount } from "./client";
+export { ensureRegistered, anchorTrade, settleTrade, getAgentState } from "./identity";
+export type { AgentState } from "./identity";

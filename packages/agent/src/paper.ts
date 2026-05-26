@@ -71,7 +71,7 @@ export function bookTradesFromTopEdges(opts: Partial<BookOptions> = {}) {
   if (room <= 0) return { booked: 0, openCount };
 
   // Latest mispricings only; skip markets already booked.
-  const candidates = conn.query<any, []>(`
+  const candidates = conn.query<any, any[]>(`
     WITH latest AS (
       SELECT * FROM mispricings WHERE captured_at = (SELECT MAX(captured_at) FROM mispricings)
     )
